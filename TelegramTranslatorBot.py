@@ -1,9 +1,5 @@
-
-
-# ===== STEP Portal Bot — Stars + Auto Invite =====
 import os
 from datetime import datetime, timedelta, timezone
-
 from telegram import (
     Update, LabeledPrice, InlineKeyboardMarkup, InlineKeyboardButton
 )
@@ -14,11 +10,9 @@ from telegram.ext import (
 )
 
 # ---------- CONFIG ----------
-BOT_TOKEN = "8495660220:AAFSiuyEoyd0lagumIHe5Pz-rGjVLDIW4KI"  
-PREMIUM_CHANNEL_ID = 1003031928708    
- # ← غيّر هذا إلى ID قناة الدورة
-ADMIN_USER_ID = Id: 7647281536            
- # ← ضع رقم حسابك الشخصي في تيليجرام
+BOT_TOKEN = "8495660220:AAFSiuyEoyd0lagumIHe5Pz-rGjVLDIW4KI"
+PREMIUM_CHANNEL_ID = int(os.getenv("PREMIUM_CHANNEL_ID", "-1000000000000"))
+ADMIN_USER_ID = int(os.getenv("ADMIN_USER_ID", "0"))
 
 COURSE_TITLE = "STEP الشاملة الحديثة"
 COURSE_DESC = "الدورة الأحدث لتأهيلك لاختبار STEP مع تحديثات مدى الحياة"
@@ -28,6 +22,7 @@ INVITE_EXP_MINUTES = 10
 # ---------- COMMANDS ----------
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
+
     kb = [[InlineKeyboardButton("ℹ عن الدورة", callback_data="about")]]
     await update.message.reply_text(
         f"👋 أهلاً {user.first_name}!\n"
@@ -65,6 +60,7 @@ async def precheckout(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def successful_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
+
     expire_at = datetime.now(timezone.utc) + timedelta(minutes=INVITE_EXP_MINUTES)
     invite = await context.bot.create_chat_invite_link(
         chat_id=PREMIUM_CHANNEL_ID,
@@ -72,12 +68,14 @@ async def successful_payment(update: Update, context: ContextTypes.DEFAULT_TYPE)
         expire_date=expire_at,
         member_limit=1
     )
+
     await update.message.reply_text(
         "✅ تم الدفع بنجاح!\n"
         f"هذا رابط دخولك (صالح لدخول واحد ولمدة {INVITE_EXP_MINUTES} دقيقة):\n"
         f"{invite.invite_link}\n\n"
         "لو واجهتك مشكلة، اكتب هنا."
     )
+
     if ADMIN_USER_ID:
         await context.bot.send_message(
             chat_id=ADMIN_USER_ID,
@@ -90,7 +88,12 @@ async def fallback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ---------- MAIN ----------
 def main():
+    if not BOT_TOKEN:
+        print("❌ ERROR: BOT_TOKEN environment variable is missing.")
+        return
+
     app = ApplicationBuilder().token(BOT_TOKEN).build()
+
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(about_cb, pattern="^about$"))
     app.add_handler(PreCheckoutQueryHandler(precheckout))
